@@ -1,3 +1,5 @@
+import json
+import urllib.parse as urlparse
 from uuid import uuid4
 
 from .resource import Resource
@@ -16,19 +18,28 @@ def parse_request_string(request_string):
 
     (verb_and_path, *headers) = metadata.split(RN)
     (verb, path, protocol) = verb_and_path.split(' ')
+
+    if '?' in path:
+        (path, qs) = path.split('?', 1)
+    else:
+        qs = ''
     
-    return (protocol, path, verb, headers, body)
+    return (protocol, path, urlparse.parse_qs(qs), verb, headers, body)
 
 
 class HttpRequest(object):
     def __init__(self, data):
         self._id = uuid4()
-        (protocol, path, verb, headers, body) = parse_request_string(data)
+        (protocol, path, qs, verb, headers, body) = parse_request_string(data)
         self._protocol = protocol
         self._path = path.rstrip('/')
+        self._query_params = qs
         self._verb = verb.upper()
         self._headers = headers
-        self._body = body
+        try:
+            self._body = json.reads(body)
+        except Exception:
+            self._body = body
 
     @property
     def id(self):
@@ -45,6 +56,10 @@ class HttpRequest(object):
     @property
     def path(self):
         return self._path
+
+    @property
+    def qs(self):
+        return self._query_params
 
     @property
     def protocol(self):
