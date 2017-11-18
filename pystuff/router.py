@@ -18,5 +18,4 @@ class Router(object):
 
 
     def get_handler(self, request):
-        print('looking for ', request.resource)
         return self._routes.get(request.resource, not_found)

@@ -3,6 +3,7 @@ from socketserver import BaseRequestHandler, TCPServer
 import time
 
 from .request import HttpRequest
+from .response import Response
 
 class IllegalArgument(Exception):
     pass
@@ -25,14 +26,18 @@ class Dispatcher(BaseRequestHandler):
                 req.id, req.verb, req.path, int(time.time()))
 
         _handle = self.server.router.get_handler(req)
-        response = _handle(req)
 
         try:
-            self.request.sendall(response.bytes)
+            response = _handle(req)
+        except Exception as e:
+            response = Response(500)
+
+        try:
             logging.info("[id - %s] response status %s at %d",
                     req.id, response.status, int(time.time()))
+            self.request.sendall(response.bytes)
         except Exception as e:
-            logging.error("[id - %s] error %s at %d",
+            logging.error("[id - %s] error sending response %s at %d",
                     req.id, e, int(time.time()))
             self.request.close()
 
