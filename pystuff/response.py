@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime
 import json
 
@@ -43,17 +44,12 @@ def upcase_keys(map):
 
 
 class Response(object):
-    def __init__(self, status=204, body=None, headers_map=None, encoding='utf-8', request=None):
+    def __init__(self, status=204, body=None, headers_map=None, default_media_type='application/json; charset=utf-8'):
         self._status = status
         self._body = body
         self.headers_map = upcase_keys(headers_map or {})
-        self.encoding = encoding
-        self._request = request
-
-
-    @property
-    def request(self):
-        return self._request
+        if self.headers_map.get('Content-Type') is None:
+            self.headers_map['Content-Type'] = default_media_type
 
 
     @property
@@ -69,7 +65,11 @@ class Response(object):
     @property
     def body(self):
         if self._body is None and self.status > 399:
-           self._body = json.dumps({'message': STATUS_MAP.get(self.status, 'Unknown Error')})
+           self._body = {'message': STATUS_MAP.get(self.status, 'Unknown Error')}
+
+        if self.headers_map['Content-Type'].startswith('application/json') and isinstance(self._body, collections.abc.Mapping):
+            return json.dumps(self._body)
+
         return self._body
 
 
@@ -93,5 +93,5 @@ class Response(object):
     def bytes(self):
         response_string = RN.join([self.status_line, self.headers_lines]) + RN + RN
         response_string += self.body or ''
-        return bytes(response_string, self.encoding)
+        return bytes(response_string, 'utf-8')
     

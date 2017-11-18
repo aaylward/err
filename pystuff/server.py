@@ -3,9 +3,15 @@ from socketserver import BaseRequestHandler, TCPServer
 import time
 
 from .request import HttpRequest
-from .router import Router
 
-_router = Router()
+class IllegalArgument(Exception):
+    pass
+
+
+def require(arg, msg):
+    if arg is None:
+        raise IllegalArgument(msg)
+    return arg
 
 
 def read_request(conn, buffer_size=4096):
@@ -13,35 +19,31 @@ def read_request(conn, buffer_size=4096):
 
 
 class Dispatcher(BaseRequestHandler):
-    def _req_cache(self, conn, holder={'_req': None}):
-        if holder['_req'] is None:
-            holder['_req'] = read_request(conn)
-        return holder['_req']
-
-
-    @property
-    def req(self):
-        return self._req_cache(self.request)
-
-
     def handle(self):
+        req = read_request(self.request)
         logging.info("[id - %s] received %s request to %s at %d",
-                self.req.id, self.req.verb, self.req.path, int(time.time()))
+                req.id, req.verb, req.path, int(time.time()))
 
-        _handle = _router.get_handler(self.req)
-        response = _handle(self.req)
+        _handle = self.server.router.get_handler(req)
+        response = _handle(req)
 
-        logging.info("[id - %s] response status %s at %d",
-                self.req.id, response.status, int(time.time()))
-
-        self.request.sendall(response.bytes)
+        try:
+            self.request.sendall(response.bytes)
+            logging.info("[id - %s] response status %s at %d",
+                    req.id, response.status, int(time.time()))
+        except Exception as e:
+            logging.error("[id - %s] error %s at %d",
+                    req.id, e, int(time.time()))
+            self.request.close()
 
 
 class Server(object):
-    def __init__(self, host='localhost', port=8080):
-        self.host = host
-        self.port = port
+    def __init__(self, host='localhost', port=8080, router=None):
+        self.host = require(host, 'host')
+        self.port = require(port, 'port')
+        self.router = require(router, 'router')
 
     def run(self):
         with TCPServer((self.host, self.port), Dispatcher) as server:
+            server.router = self.router
             server.serve_forever()

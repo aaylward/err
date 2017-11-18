@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from .resource import Resource
+
 RN = '\r\n'
 
 
@@ -23,8 +25,8 @@ class HttpRequest(object):
         self._id = uuid4()
         (protocol, path, verb, headers, body) = parse_request_string(data)
         self._protocol = protocol
-        self._path = path
-        self._verb = verb
+        self._path = path.rstrip('/')
+        self._verb = verb.upper()
         self._headers = headers
         self._body = body
 
@@ -32,8 +34,9 @@ class HttpRequest(object):
     def id(self):
         return self._id
 
+    @property
     def resource(self):
-        return frozenset({'path': self._path, 'verb': self._verb})
+        return Resource(self._path, self._verb)
 
     @property
     def verb(self):
@@ -55,6 +58,3 @@ class HttpRequest(object):
     def body(self):
         return self._body
 
-
-def read_request(conn, buffer_size=4096):
-    return HttpRequest(conn.recv(buffer_size).decode().strip())

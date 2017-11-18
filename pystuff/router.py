@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from .response import Response
 
 
@@ -11,5 +12,11 @@ class Router(object):
         self._routes = routes or {}
 
 
+    def with_route(self, resource, handler):
+        self._routes[resource] = handler
+        return self
+
+
     def get_handler(self, request):
-        return self._routes.get(request.resource(), not_found)
+        print('looking for ', request.resource)
+        return self._routes.get(request.resource, not_found)
