@@ -17,5 +17,11 @@ class Router(object):
         return self
 
 
-    def get_handler(self, request):
+    def _get_handler(self, request):
         return self._routes.get(request.resource, not_found)
+
+
+    def route(self, request):
+        handler = self._get_handler(request)
+        return handler.__call__(request)
+

@@ -1,6 +1,6 @@
 import json
+import logging
 import urllib.parse as urlparse
-from uuid import uuid4
 
 from .resource import Resource
 
@@ -8,13 +8,15 @@ RN = '\r\n'
 
 
 def parse_request_string(request_string):
-    parts = request_string.split(RN + RN, 1)
+    parts = list(filter(lambda x: len(x.strip()) > 0, request_string.split(RN + RN, 1)))
 
     if len(parts) == 2:
         (metadata, body) = parts
-    else:
+    elif len(parts) == 1:
         metadata = parts[0]
         body = None
+    else:
+        raise Exception(locals())
 
     (verb_and_path, *headers) = metadata.split(RN)
     (verb, path, protocol) = verb_and_path.split(' ')
@@ -28,8 +30,8 @@ def parse_request_string(request_string):
 
 
 class HttpRequest(object):
-    def __init__(self, data):
-        self._id = uuid4()
+    def __init__(self, data, _id=None):
+        self._id = _id
         (protocol, path, qs, verb, headers, body) = parse_request_string(data)
         self._protocol = protocol
         self._path = path.rstrip('/')
