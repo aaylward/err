@@ -24,12 +24,15 @@ def read_request(conn, req_id=None, buffer_size=4096):
 
 def send(conn, response, req_id=None):
     try:
-        logging.info("[id - %s] response status %s at %d",
-                req_id, response.status, int(time.time()))
         conn.sendall(response.bytes)
+        if response.has_file:
+            with open(response.filename, 'rb') as f:
+                conn.sendfile(f)
+        logging.info("[id - %s] response status %s at %s",
+                req_id, response.status, str(time.time()))
     except Exception as e:
-        logging.exception("[id - %s] error sending response %s at %d",
-                req_id, response, int(time.time()))
+        logging.exception("[id - %s] error sending response %s at %s",
+                req_id, response, str(time.time()))
     finally:
         try:
             conn.shutdown(socket.SHUT_RDWR)
@@ -37,7 +40,6 @@ def send(conn, response, req_id=None):
             pass
         finally:
             conn.close()
-
 
 
 def try_handle(conn, router):

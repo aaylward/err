@@ -1,6 +1,8 @@
 import collections
 from datetime import datetime
 import json
+import magic
+import os
 
 RN = '\r\n'
 
@@ -36,20 +38,16 @@ STATUS_MAP = {
         }
 
 
-def upcase_keys(map):
-    upcased_key_map = {}
-    for k, v in map.items():
-        upcased_key_map[k.upper()] = v
-    return upcased_key_map
-
-
 class Response(object):
-    def __init__(self, status=204, body=None, headers_map=None, default_media_type='application/json; charset=utf-8'):
+    def __init__(self, status=204, body=None, headers_map=None, file_name=None, default_media_type='application/json; charset=utf-8'):
         self._status = status
         self._body = body
-        self.headers_map = upcase_keys(headers_map or {})
+        self.headers_map = headers_map or {}
         if self.headers_map.get('Content-Type') is None:
             self.headers_map['Content-Type'] = default_media_type
+        self._file_name = file_name
+        if file_name is not None:
+            self.headers_map['Content-Type'] = magic.from_file(file_name)
 
 
     @property
@@ -83,10 +81,22 @@ class Response(object):
             headers.append('Content-Type: application/json; charset=utf-8')
         if self.body is not None:
             headers.append('Content-Length: ' + str(len(self.body)))
+        elif self.has_file:
+            headers.append('Content-Length: ' + str(os.path.getsize(self.filename)))
         if self.headers_map.get('Connection') is None:
             headers.append('Connection: keep-alive')
 
         return RN.join(headers)
+
+
+    @property
+    def has_file(self):
+        return self._file_name is not None
+
+
+    @property
+    def filename(self):
+        return self._file_name
 
 
     @property
