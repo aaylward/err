@@ -10,6 +10,8 @@ logging.basicConfig(format='%(levelname)s:%(message)s\n', level=logging.DEBUG)
 
 CWD = os.getcwd()
 
+MOVIES = {'guitar': os.path.join(CWD, 'guitar.mov')}
+
 def handle_post(request):
     return Response(200, {'message': 'ack', 'req': request.body})
 
@@ -21,9 +23,8 @@ def say_hi(request):
 def handle_vid(request):
     vid_name = request.qs.get('name', [''])[0]
 
-    real_name = os.path.join(CWD, vid_name + '.mov')
-    if os.path.exists(real_name):
-        return Response(200, file_name=real_name)
+    if MOVIES.get(vid_name) is not None:
+        return Response(200, file_name=MOVIES.get(vid_name))
     else:
         return Response(404)
 
