@@ -16,6 +16,7 @@ def parse_request_string(request_string):
         metadata = parts[0]
         body = None
     else:
+        # FIXME: why does this happen when I apache bench?
         raise Exception(locals())
 
     (verb_and_path, *headers) = metadata.split(RN)
